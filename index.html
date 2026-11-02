@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mabinogi Mobile Popup Spec Prototype</title>
+  <style>
+    :root { --ink:#20252b; --muted:#697179; --line:#dfe3e6; --panel:#fff; --bg:#f3f5f7; --green:#2d7d50; --green-soft:#eaf5ef; --red:#b64c4c; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--bg); font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif; }
+    button,input,select,textarea { font:inherit; }
+    .app { min-height:100vh; display:grid; grid-template-columns:390px minmax(520px,1fr) 350px; }
+    aside,.right { background:#fff; border-right:1px solid var(--line); overflow:auto; height:100vh; }
+    aside { padding:20px; }
+    .right { border-right:0; border-left:1px solid var(--line); padding:20px; }
+    main { height:100vh; overflow:auto; display:flex; flex-direction:column; align-items:center; }
+    h1 { margin:0 0 18px; font-size:19px; }
+    h2 { margin:22px 0 9px; font-size:13px; letter-spacing:.02em; }
+    .sub { color:var(--muted); font-size:12px; line-height:1.5; }
+    .presets { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:16px; }
+    .presets button,.copy,.reset { border:1px solid var(--line); border-radius:8px; background:#fff; padding:8px 5px; cursor:pointer; }
+    .presets button.active { color:white; background:var(--green); border-color:var(--green); }
+    .section { border-top:1px solid var(--line); padding-top:13px; margin-top:13px; }
+    .row { display:grid; grid-template-columns:118px 1fr; gap:8px; align-items:center; margin:8px 0; font-size:13px; }
+    .row.wide { grid-template-columns:1fr; }
+    label.check { display:flex; gap:8px; align-items:center; font-size:13px; cursor:pointer; }
+    input[type="text"],input[type="number"],textarea,select { width:100%; border:1px solid var(--line); border-radius:7px; padding:8px 9px; background:white; }
+    textarea { resize:vertical; min-height:62px; }
+    input[type="checkbox"] { accent-color:var(--green); }
+    .buttons-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+    .option { border:1px solid var(--line); border-radius:8px; padding:8px; }
+    .option strong { display:block; font-size:12px; margin-bottom:6px; }
+    .preview-toolbar { height:60px; display:flex; align-items:center; gap:10px; width:100%; padding:0 20px; background:#fff; border-bottom:1px solid var(--line); }
+    .preview-toolbar strong { margin-right:auto; }
+    .game { position:relative; flex:1; width:100%; min-height:620px; display:flex; overflow:hidden; background:linear-gradient(160deg,#c6d6dc,#ebe7d9); }
+    .game::before { content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.2) 25%,transparent 25%) 0 0/54px 54px; opacity:.35; }
+    .background-ui { position:absolute; left:32px; right:32px; top:30px; bottom:28px; border-radius:18px; border:1px solid rgba(255,255,255,.8); background:rgba(255,255,255,.28); backdrop-filter:blur(3px); }
+    .background-ui::before { content:""; position:absolute; left:28px; right:28px; top:32px; height:42px; border-radius:9px; background:rgba(29,48,50,.13); }
+    .background-ui::after { content:"인게임 화면 예시"; position:absolute; left:28px; top:43px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.3); font-weight:bold; }
+    .screen-shade { position:absolute; inset:0; background:rgba(18,24,28,.52); opacity:0; transition:.2s; pointer-events:none; }
+    .show-shade .screen-shade { opacity:1; }
+    .popup-wrap { position:absolute; inset:0; z-index:2; display:flex; padding:30px; pointer-events:none; }
+    .popup-wrap.bottom { align-items:flex-end; justify-content:center; }
+    .popup-wrap.center { align-items:center; justify-content:center; }
+    .popup { width:min(640px,calc(100% - 10px)); background:#222632; border-radius:28px 28px 56px 56px; box-shadow:0 18px 60px rgba(0,0,0,.28); overflow:hidden; pointer-events:auto; animation:up .18s ease-out; }
+    @keyframes up { from { transform:translateY(16px); opacity:.4 } to { transform:none; opacity:1 } }
+    .popup-body { padding:56px 42px 32px; }
+    .popup-title { font-size:32px; font-weight:700; text-align:center; margin-bottom:22px; color:#fff; }
+    .popup-desc { white-space:pre-line; line-height:1.4; text-align:center; color:#BCBDBD; font-size:26px; }
+    .asset-row { display:flex; justify-content:center; margin:14px 0 8px; }
+    .item-icon { width:58px; height:58px; border-radius:10px; display:grid; place-items:center; background:linear-gradient(135deg,#b7d8df,#5e8792); color:#fff; font-size:24px; border:2px solid #fff; box-shadow:0 1px 8px rgba(0,0,0,.18); }
+    .costs { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin:12px 0; }
+    .costs.mm-costs { display:block; width:100%; padding:10px 32px; margin:16px 0 0; }
+    .cost { width:100%; height:32px; display:grid; grid-template-columns:48% 48%; column-gap:4%; align-items:center; font-size:24px; color:#fff; }
+    .cost-label { color:#dcdde3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cost-value { display:flex; align-items:center; justify-content:flex-end; gap:8px; min-width:0; }
+    .cost .coin { width:28px; height:28px; object-fit:contain; flex:none; }
+    .tip { border-radius:26px; background:#333849; padding:28px 24px; color:#d3d4dd; font-size:22px; line-height:1.45; margin-top:32px; text-align:center; }
+    .checkbox { justify-content:center; margin-top:32px; color:#fff; font-size:26px; height:34px; }
+    .checkbox-box { width:34px; height:34px; border-radius:4px; background:#333849; display:grid; place-items:center; flex:none; }
+    .checkbox-box.checked { background:#00b487; }
+    .checkbox-box img { width:24px; height:24px; }
+    .popup-actions { display:grid; gap:8px; padding:32px 42px 42px; height:auto; }
+    .popup-actions.three { grid-template-columns:1fr 1fr; grid-template-rows:80px 80px; column-gap:8px; row-gap:16px; }
+    .popup-actions.two { grid-template-columns:1fr 1fr; }
+    .popup-actions.one { grid-template-columns:1fr; }
+    .popup-action { min-height:80px; border-radius:20px; border:0; background:#39404c; color:#fff; font-size:24px; font-weight:bold; cursor:pointer; }
+    .popup-action.confirm { background:#0fB376; color:white; }
+    .popup-action.left { color:#fff; background:#77818a; }
+    .popup-action.transparent { color:#fff; background:transparent; border:1px solid #626778; }
+    .popup-action.red { color:#fff; background:var(--red); border-color:var(--red); }
+    .popup-actions.three .popup-action.cancel-three { grid-column:1/3; grid-row:2; }
+    .popup-action:disabled { opacity:.38; cursor:not-allowed; }
+    .hidden { display:none !important; }
+    .spec-list { font-size:12px; line-height:1.6; margin:0; padding-left:18px; }
+    .spec-card { border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:8px; background:#fafafa; }
+    .spec-card strong { display:block; font-size:12px; margin-bottom:4px; }
+    .spec-card pre { white-space:pre-wrap; word-break:break-word; font-size:11px; margin:0; color:#40464b; }
+    .actions-row { display:flex; gap:7px; margin-bottom:14px; }
+    .actions-row button { flex:1; padding:9px; }
+    @media (max-width:1050px) { .app { grid-template-columns:350px 1fr; } .right { display:none; } }
+    @media (max-width:760px) { .app { display:block; } aside,.right { height:auto; border:0; } main { height:640px; } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>공용 팝업 프로토타입</h1>
+    <div class="sub">신공정 CancelConfirm 공용 팝업 기준. 요소를 켜거나 끄고 최대·최소 스펙을 비교합니다.</div>
+
+    <div class="presets">
+      <button onclick="applyPreset('minimal')">최소 스펙</button>
+      <button onclick="applyPreset('normal')" class="active">일반</button>
+      <button onclick="applyPreset('maximum')">최대 스펙</button>
+    </div>
+
+    <div class="section">
+      <h2>표시 위치</h2>
+      <div class="row">
+        <span>배치</span>
+        <select id="position" onchange="render()"><option value="Bottom">하단</option><option value="Center">중앙</option></select>
+      </div>
+      <label class="check"><input id="userCanClose" type="checkbox" checked onchange="render()"> 팝업 바깥 어두운 영역을 눌러 닫기</label>
+    </div>
+
+    <div class="section">
+      <h2>텍스트 구성</h2>
+      <label class="check"><input id="showTitle" type="checkbox" checked onchange="render()"> 제목</label>
+      <div class="row wide"><input id="title" type="text" value="아이템을 구매하시겠습니까?" oninput="render()"></div>
+      <label class="check"><input id="showDescription" type="checkbox" checked onchange="render()"> 본문</label>
+      <div class="row wide"><textarea id="description" oninput="render()">선택한 아이템을 구매합니다.&#10;구매 후에는 취소할 수 없습니다.</textarea></div>
+    </div>
+
+    <div class="section">
+      <h2>부가 구성</h2>
+      <label class="check"><input id="showIcon" type="checkbox" checked onchange="render()"> 아이템 아이콘 (SetIcon)</label>
+      <label class="check"><input id="showTip" type="checkbox" checked onchange="render()"> Tip (SetTip)</label>
+      <div class="row wide"><input id="tip" type="text" value="장비 강화에 필요한 재료입니다." oninput="render()"></div>
+      <label class="check"><input id="showCosts" type="checkbox" checked onchange="render()"> 필요 비용 (SetRequiredCosts)</label>
+      <div class="row"><span>재화 아이콘</span><select id="costIconType" onchange="render()"><option value="gold">MM 골드</option><option value="goldCoin">MM 골드 코인</option></select></div>
+      <div class="row"><span>비용</span><input id="cost" type="number" value="1250" min="0" step="1" oninput="render()"></div>
+      <div class="row"><span>비용 이름</span><input id="costLabel" type="text" value="골드 비용" oninput="render()"></div>
+      <label class="check"><input id="costAboveTip" type="checkbox" onchange="render()"> 비용을 Tip 위에 표시</label>
+    </div>
+
+    <div class="section">
+      <h2>다시 보지 않기</h2>
+      <label class="check"><input id="showCheckbox" type="checkbox" onchange="render()"> 체크박스 표시</label>
+      <div class="row"><span>초기 상태</span><select id="checkboxInitial" onchange="render()"><option value="false">선택 안 됨</option><option value="true">선택됨</option></select></div>
+      <div class="row"><span>기간</span><select id="doNotShowType" onchange="render()"><option value="None">없음</option><option value="Day">1일</option><option value="Week">7일</option></select></div>
+    </div>
+
+    <div class="section">
+      <h2>버튼 구성 (최대 3개)</h2>
+      <div class="buttons-grid">
+        <div class="option">
+          <label class="check"><input id="showCancel" type="checkbox" checked onchange="render()"> <strong>취소</strong></label>
+          <input id="cancelText" type="text" value="취소" oninput="render()" style="margin-top:7px">
+        </div>
+        <div class="option">
+          <label class="check"><input id="showLeft" type="checkbox" onchange="render()"> <strong>좌측 확인</strong></label>
+          <input id="leftText" type="text" value="바로 사용" oninput="render()" style="margin-top:7px">
+        </div>
+        <div class="option">
+          <label class="check"><input id="showConfirm" type="checkbox" checked onchange="render()"> <strong>확인</strong></label>
+          <input id="confirmText" type="text" value="구매하기" oninput="render()" style="margin-top:7px">
+        </div>
+      </div>
+      <div class="row"><span>좌측 버튼 색상</span><select id="leftColor" onchange="render()"><option value="default">기본</option><option value="transparent">투명</option><option value="red">빨강</option></select></div>
+      <label class="check"><input id="confirmEnable" type="checkbox" checked onchange="render()"> 확인 버튼 활성화</label>
+      <label class="check"><input id="confirmAlways" type="checkbox" onchange="render()"> 비활성 상태에서도 호출 (AlwaysInvoke)</label>
+      <label class="check"><input id="leftEnable" type="checkbox" checked onchange="render()"> 좌측 확인 버튼 활성화</label>
+      <label class="check"><input id="leftAlways" type="checkbox" onchange="render()"> 좌측 AlwaysInvoke</label>
+    </div>
+  </aside>
+
+  <main>
+    <div class="preview-toolbar">
+      <strong>인게임 팝업 미리보기</strong>
+      <span class="sub">바깥 배경 선택 시 닫기 동작은 콘솔에 표시됩니다.</span>
+    </div>
+    <div class="game" id="game">
+      <div class="background-ui"></div>
+      <div class="screen-shade"></div>
+      <div class="popup-wrap center" id="popupWrap">
+        <div class="popup" id="popup">
+          <div class="popup-body">
+            <div class="popup-title" id="previewTitle"></div>
+            <div class="popup-desc" id="previewDescription"></div>
+            <div class="asset-row hidden" id="iconWrap"><div class="item-icon">A</div></div>
+            <div id="costsAbove"></div>
+            <div class="tip hidden" id="previewTip"></div>
+            <div id="costsBelow"></div>
+            <label class="check checkbox hidden" id="checkboxWrap"><span class="checkbox-box" id="previewCheckboxBox"><img src="Icon64_Check.png" alt=""></span><span id="previewCheckboxText">다시 보지 않기 (7일)</span></label>
+          </div>
+          <div class="popup-actions two" id="actions"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="right">
+    <h1>현재 설정</h1>
+    <div class="actions-row">
+      <button class="copy" onclick="copySpec()">사양 복사</button>
+      <button class="reset" onclick="applyPreset('normal')">일반값 복원</button>
+    </div>
+    <div id="specCards"></div>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const ids = ["showTitle","showDescription","showIcon","showTip","showCosts","costAboveTip","showCheckbox","showCancel","showLeft","showConfirm","confirmEnable","confirmAlways","leftEnable","leftAlways","userCanClose"];
+  let currentSpec = {};
+
+  function countText(value) {
+    return [...String(value ?? "")].length;
+  }
+
+  function read() {
+    const checked = id => $(id).checked;
+    const text = id => $(id).value;
+    const spec = {
+      position: text("position"),
+      userCanClose: checked("userCanClose"),
+      title: {show:checked("showTitle"), text:text("title"), characters:countText(text("title"))},
+      description: {show:checked("showDescription"), text:text("description"), characters:countText(text("description"))},
+      icon: checked("showIcon"),
+      tip: {show:checked("showTip"), text:text("tip")},
+      requiredCosts: {show:checked("showCosts"), amount:Number(text("cost")), label:text("costLabel"), iconType:text("costIconType"), aboveTip:checked("costAboveTip")},
+      doNotShow: {show:checked("showCheckbox"), initial:text("checkboxInitial")==="true", type:text("doNotShowType")},
+      cancelButton: {show:checked("showCancel"), text:text("cancelText")},
+      leftConfirmButton: {show:checked("showLeft"), text:text("leftText"), enable:checked("leftEnable"), alwaysInvoke:checked("leftAlways"), color:text("leftColor")},
+      confirmButton: {show:checked("showConfirm"), text:text("confirmText"), enable:checked("confirmEnable"), alwaysInvoke:checked("confirmAlways")}
+    };
+    spec.buttonCount = [spec.cancelButton.show,spec.leftConfirmButton.show,spec.confirmButton.show].filter(Boolean).length;
+    spec.elementCount = [spec.title.show,spec.description.show,spec.icon,spec.tip.show,spec.requiredCosts.show,spec.doNotShow.show].filter(Boolean).length;
+    return spec;
+  }
+
+  function money(cost,label,iconType) {
+    const icon = iconType === "goldCoin" ? "Coin_Gold.png" : "Icon64_Resource_Gold.png";
+    return `<div class="cost">
+      <span class="cost-label">${escapeHtml(label || "비용")}</span>
+      <span class="cost-value"><img class="coin" src="${icon}" alt="골드"><span>${Number(cost||0).toLocaleString()}</span></span>
+    </div>`;
+  }
+
+  function render() {
+    currentSpec = read();
+    const s = currentSpec;
+    $("game").classList.toggle("show-shade", s.userCanClose);
+    $("popupWrap").className = "popup-wrap " + s.position.toLowerCase();
+    $("previewTitle").classList.toggle("hidden", !s.title.show);
+    $("previewTitle").textContent = s.title.text;
+    $("previewDescription").classList.toggle("hidden", !s.description.show);
+    $("previewDescription").textContent = s.description.text;
+    $("iconWrap").classList.toggle("hidden", !s.icon);
+    $("previewTip").classList.toggle("hidden", !s.tip.show);
+    $("previewTip").textContent = s.tip.text;
+
+    const costRow = s.requiredCosts.show ? money(s.requiredCosts.amount,s.requiredCosts.label,s.requiredCosts.iconType) : "";
+    $("costsAbove").innerHTML = s.requiredCosts.aboveTip ? `<div class="costs mm-costs">${costRow}</div>` : "";
+    $("costsBelow").innerHTML = !s.requiredCosts.aboveTip && costRow ? `<div class="costs mm-costs">${costRow}</div>` : "";
+    $("checkboxWrap").classList.toggle("hidden", !s.doNotShow.show);
+    $("previewCheckboxBox").classList.toggle("checked", s.doNotShow.initial);
+    $("previewCheckboxText").textContent = s.doNotShow.type === "None" ? "다시 보지 않기" : `다시 보지 않기 (${s.doNotShow.type === "Day" ? "1일" : "7일"})`;
+
+    const actions = [];
+    if (s.cancelButton.show) actions.push(`<button class="popup-action transparent ${s.leftConfirmButton.show && s.confirmButton.show ? "cancel-three" : ""}" onclick="action('Cancel')">${escapeHtml(s.cancelButton.text)}</button>`);
+    if (s.leftConfirmButton.show) actions.push(`<button class="popup-action ${s.leftConfirmButton.color}" ${s.leftConfirmButton.enable ? "" : "disabled"} onclick="action('LeftConfirm')">${escapeHtml(s.leftConfirmButton.text)}</button>`);
+    if (s.confirmButton.show) actions.push(`<button class="popup-action confirm" ${s.confirmButton.enable ? "" : "disabled"} onclick="action('Confirm')">${escapeHtml(s.confirmButton.text)}</button>`);
+    $("actions").innerHTML = actions.join("");
+    $("actions").className = "popup-actions " + (actions.length === 1 ? "one" : actions.length === 2 ? "two" : "three");
+    updateSpecs();
+  }
+
+  function action(name) {
+    alert("결과: " + name);
+  }
+
+  function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = value;
+    return div.innerHTML;
+  }
+
+  function updateSpecs() {
+    const s = currentSpec;
+    const elements = [
+      s.title.show ? "제목" : null,
+      s.description.show ? "본문" : null,
+      s.icon ? "아이템 아이콘" : null,
+      s.tip.show ? "Tip" : null,
+      s.requiredCosts.show ? `필요 비용: ${s.requiredCosts.label} ${s.requiredCosts.amount}` : null,
+      s.doNotShow.show ? `재표시 방지: ${s.doNotShow.type}` : null
+    ].filter(Boolean);
+    const buttons = [
+      s.cancelButton.show ? `취소 "${s.cancelButton.text}"` : null,
+      s.leftConfirmButton.show ? `좌측 확인 "${s.leftConfirmButton.text}" (${s.leftConfirmButton.color}, 활성=${s.leftConfirmButton.enable}, 항상 호출=${s.leftConfirmButton.alwaysInvoke})` : null,
+      s.confirmButton.show ? `확인 "${s.confirmButton.text}" (활성=${s.confirmButton.enable}, 항상 호출=${s.confirmButton.alwaysInvoke})` : null
+    ].filter(Boolean);
+
+    $("specCards").innerHTML = `
+      <div class="spec-card"><strong>구성 요약</strong><pre>부가 요소 ${s.elementCount}개 · 버튼 ${s.buttonCount}개</pre></div>
+      <div class="spec-card"><strong>표시/닫기</strong><pre>배치: ${s.position}\n배경 닫기: ${s.userCanClose ? "허용" : "차단"}</pre></div>
+      <div class="spec-card"><strong>사용 요소</strong><pre>${elements.length ? elements.join("\n") : "없음"}</pre></div>
+      <div class="spec-card"><strong>버튼</strong><pre>${buttons.length ? buttons.join("\n") : "없음 (필수 확인)"} </pre></div>
+      <div class="spec-card"><strong>문자 수</strong><pre>제목: ${s.title.characters}자\n본문: ${s.description.characters}자</pre></div>
+      <div class="spec-card"><strong>JSON 설정</strong><pre>${escapeHtml(JSON.stringify(s,null,2))}</pre></div>`;
+  }
+
+  async function copySpec() {
+    const s = read();
+    const text = JSON.stringify(s,null,2);
+    await navigator.clipboard.writeText(text);
+    const button = document.querySelector(".copy");
+    button.textContent = "복사 완료";
+    setTimeout(() => button.textContent = "사양 복사", 1000);
+  }
+
+  function set(id,value) { $(id)[typeof value === "boolean" ? "checked" : "value"] = value; }
+
+  function applyPreset(name) {
+    const minimal = {
+      position:"Bottom",userCanClose:false,showTitle:true,showDescription:true,showIcon:false,showTip:false,showCosts:false,costAboveTip:false,showCheckbox:false,showCancel:false,showLeft:false,showConfirm:true,cancelText:"취소",leftText:"바로 사용",confirmText:"확인",leftColor:"default",confirmEnable:true,confirmAlways:false,leftEnable:true,leftAlways:false,checkboxInitial:"false",doNotShowType:"None",title:"알림",description:"작업을 완료했습니다."
+    };
+    const normal = {
+      position:"Bottom",userCanClose:true,showTitle:true,showDescription:true,showIcon:false,showTip:true,showCosts:false,costAboveTip:false,showCheckbox:false,showCancel:true,showLeft:false,showConfirm:true,cancelText:"취소",leftText:"바로 사용",confirmText:"확인",leftColor:"default",confirmEnable:true,confirmAlways:false,leftEnable:true,leftAlways:false,checkboxInitial:"false",doNotShowType:"None",title:"아이템을 구매하시겠습니까?",description:"선택한 아이템을 구매합니다.\n구매 후에는 취소할 수 없습니다.",tip:"장비 강화에 필요한 재료입니다."
+    };
+    const maximum = {
+      position:"Center",userCanClose:false,showTitle:true,showDescription:true,showIcon:true,showTip:true,showCosts:true,costAboveTip:false,showCheckbox:true,showCancel:true,showLeft:true,showConfirm:true,cancelText:"취소",leftText:"바로 사용",confirmText:"구매하기",leftColor:"red",confirmEnable:true,confirmAlways:false,leftEnable:true,leftAlways:false,checkboxInitial:false,doNotShowType:"Week",title:"아이템을 구매하시겠습니까?",description:"선택한 아이템을 구매합니다.\n구매 후에는 취소할 수 없습니다.",tip:"장비 강화에 필요한 재료입니다.",cost:"1250",costLabel:"골드 비용",costIconType:"gold"
+    };
+    const data = {minimal,normal,maximum}[name] || normal;
+    ids.forEach(id => { if (id in data) set(id,data[id]); });
+    ["position","title","description","tip","cost","costLabel","costIconType","cancelText","leftText","confirmText","leftColor","checkboxInitial","doNotShowType"].forEach(id => { if (id in data) set(id,data[id]); });
+    document.querySelectorAll(".presets button").forEach(b => b.classList.toggle("active", b.textContent.includes(name==="minimal"?"최소":name==="maximum"?"최대":"일반")));
+    render();
+  }
+
+  document.getElementById("game").addEventListener("click", e => {
+    const popup = $("popup");
+    if (!$("popup").contains(e.target) && currentSpec.userCanClose) {
+      alert("UserCanClose=true: 팝업 닫힘");
+    }
+  });
+
+  $("checkboxWrap").addEventListener("click", () => {
+    const box = $("previewCheckboxBox");
+    box.classList.toggle("checked");
+  });
+
+  applyPreset("normal");
+</script>
+</body>
+</html>
