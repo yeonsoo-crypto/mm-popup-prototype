@@ -80,6 +80,10 @@
     .popup-actions.one { grid-template-columns:1fr; }
     .popup-action { min-height:80px; border-radius:20px; border:0; background:#39404c; color:#fff; font-size:24px; font-weight:bold; cursor:pointer; }
     .popup-action.confirm { background:#0fB376; color:white; }
+    .popup-action.confirm,.popup-action.left { position:relative; }
+    .shortcut-indicator { position:absolute; left:16px; top:12px; min-width:28px; height:28px; padding:0 7px; display:inline-flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.38); border-radius:6px; background:rgba(18,20,26,.38); color:#fff; font-size:16px; line-height:1; }
+    .cancel-label { display:inline-flex; align-items:center; justify-content:center; gap:12px; }
+    .cancel-label .shortcut-indicator { position:static; min-width:28px; height:28px; }
     .popup-action.left { color:#fff; background:#77818a; }
     .popup-action.transparent { color:#fff; background:transparent; border:1px solid #626778; }
     .popup-action.red { color:#fff; background:var(--red); border-color:var(--red); }
@@ -172,6 +176,7 @@
     <div class="preview-toolbar">
       <strong>인게임 팝업 미리보기</strong>
       <span class="sub">바깥 배경 선택 시 닫기 동작은 콘솔에 표시됩니다.</span>
+      <label class="check">단축키 표시 <select id="shortcutMode" onchange="render()"><option value="pc">PC</option><option value="gamepad">게임패드</option><option value="none">표시 안 함</option></select></label>
     </div>
     <div class="game" id="game">
       <div class="background-ui"></div>
@@ -205,7 +210,7 @@
 
 <script>
   const $ = id => document.getElementById(id);
-  const ids = ["showTitle","showDescription","showIcon","showTip","showCosts","costAboveTip","showCheckbox","showCancel","showLeft","showConfirm","confirmEnable","confirmAlways","leftEnable","leftAlways","userCanClose"];
+  const ids = ["showTitle","showDescription","showIcon","showTip","showCosts","costAboveTip","showCheckbox","showCancel","showLeft","showConfirm","confirmEnable","confirmAlways","leftEnable","leftAlways","userCanClose","shortcutMode"];
   let currentSpec = {};
 
   function countText(value) {
@@ -218,6 +223,7 @@
     const spec = {
       position: text("position"),
       userCanClose: checked("userCanClose"),
+      shortcutMode: text("shortcutMode"),
       title: {show:checked("showTitle"), text:text("title"), characters:countText(text("title"))},
       description: {show:checked("showDescription"), text:text("description"), characters:countText(text("description"))},
       icon: checked("showIcon"),
@@ -262,9 +268,13 @@
     $("previewCheckboxText").textContent = s.doNotShow.type === "None" ? "다시 보지 않기" : `다시 보지 않기 (${s.doNotShow.type === "Day" ? "1일" : "7일"})`;
 
     const actions = [];
-    if (s.cancelButton.show) actions.push(`<button class="popup-action transparent ${s.leftConfirmButton.show && s.confirmButton.show ? "cancel-three" : ""}" onclick="action('Cancel')">${escapeHtml(s.cancelButton.text)}</button>`);
+    const shortcutLabels = s.shortcutMode === "gamepad" ? {confirm:"A", cancel:"B"} : {confirm:"Enter", cancel:"Esc"};
+    const showShortcuts = s.shortcutMode !== "none";
+    const cancelShortcut = showShortcuts ? `<span class="shortcut-indicator" aria-label="취소 단축키">${shortcutLabels.cancel}</span>` : "";
+    const confirmShortcut = showShortcuts ? `<span class="shortcut-indicator" aria-label="확인 단축키">${shortcutLabels.confirm}</span>` : "";
+    if (s.cancelButton.show) actions.push(`<button class="popup-action transparent ${s.leftConfirmButton.show && s.confirmButton.show ? "cancel-three" : ""}" onclick="action('Cancel')"><span class="cancel-label">${cancelShortcut}<span>${escapeHtml(s.cancelButton.text)}</span></span></button>`);
     if (s.leftConfirmButton.show) actions.push(`<button class="popup-action ${s.leftConfirmButton.color}" ${s.leftConfirmButton.enable ? "" : "disabled"} onclick="action('LeftConfirm')">${escapeHtml(s.leftConfirmButton.text)}</button>`);
-    if (s.confirmButton.show) actions.push(`<button class="popup-action confirm" ${s.confirmButton.enable ? "" : "disabled"} onclick="action('Confirm')">${escapeHtml(s.confirmButton.text)}</button>`);
+    if (s.confirmButton.show) actions.push(`<button class="popup-action confirm" ${s.confirmButton.enable ? "" : "disabled"} onclick="action('Confirm')">${confirmShortcut}${escapeHtml(s.confirmButton.text)}</button>`);
     $("actions").innerHTML = actions.join("");
     $("actions").className = "popup-actions " + (actions.length === 1 ? "one" : actions.length === 2 ? "two" : "three");
     updateSpecs();
@@ -298,7 +308,7 @@
 
     $("specCards").innerHTML = `
       <div class="spec-card"><strong>구성 요약</strong><pre>부가 요소 ${s.elementCount}개 · 버튼 ${s.buttonCount}개</pre></div>
-      <div class="spec-card"><strong>표시/닫기</strong><pre>배치: ${s.position}\n배경 닫기: ${s.userCanClose ? "허용" : "차단"}</pre></div>
+      <div class="spec-card"><strong>표시/닫기</strong><pre>배치: ${s.position}\n배경 닫기: ${s.userCanClose ? "허용" : "차단"}\n단축키: ${s.shortcutMode === "none" ? "표시 안 함" : s.shortcutMode === "gamepad" ? "게임패드" : "PC"}</pre></div>
       <div class="spec-card"><strong>사용 요소</strong><pre>${elements.length ? elements.join("\n") : "없음"}</pre></div>
       <div class="spec-card"><strong>버튼</strong><pre>${buttons.length ? buttons.join("\n") : "없음 (필수 확인)"} </pre></div>
       <div class="spec-card"><strong>문자 수</strong><pre>제목: ${s.title.characters}자\n본문: ${s.description.characters}자</pre></div>
