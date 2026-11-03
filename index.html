@@ -268,7 +268,7 @@
     $("previewCheckboxText").textContent = s.doNotShow.type === "None" ? "다시 보지 않기" : `다시 보지 않기 (${s.doNotShow.type === "Day" ? "1일" : "7일"})`;
 
     const actions = [];
-    const shortcutLabels = s.shortcutMode === "gamepad" ? {confirm:"A", cancel:"B"} : {confirm:"Enter", cancel:"Esc"};
+    const shortcutLabels = s.shortcutMode === "gamepad" ? {confirm:"A", cancel:"B"} : {confirm:"Space", cancel:"Esc"};
     const showShortcuts = s.shortcutMode !== "none";
     const cancelShortcut = showShortcuts ? `<span class="shortcut-indicator" aria-label="취소 단축키">${shortcutLabels.cancel}</span>` : "";
     const confirmShortcut = showShortcuts ? `<span class="shortcut-indicator" aria-label="확인 단축키">${shortcutLabels.confirm}</span>` : "";
