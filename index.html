@@ -5,9 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mabinogi Mobile Popup Spec Prototype</title>
   <style>
+    @font-face {
+      font-family:"Devcat";
+      src:url("./KR-Regular.otf") format("opentype");
+      font-style:normal;
+      font-weight:400;
+      font-display:swap;
+    }
+    @font-face {
+      font-family:"Devcat";
+      src:url("./KR-Bold.otf") format("opentype");
+      font-style:normal;
+      font-weight:700;
+      font-display:swap;
+    }
     :root { --ink:#20252b; --muted:#697179; --line:#dfe3e6; --panel:#fff; --bg:#f3f5f7; --green:#2d7d50; --green-soft:#eaf5ef; --red:#b64c4c; }
     * { box-sizing:border-box; }
-    body { margin:0; color:var(--ink); background:var(--bg); font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif; }
+    body { margin:0; color:var(--ink); background:var(--bg); font-family:"Devcat","Malgun Gothic","Apple SD Gothic Neo",sans-serif; }
     button,input,select,textarea { font:inherit; }
     .app { min-height:100vh; display:grid; grid-template-columns:390px minmax(520px,1fr) 350px; }
     aside,.right { background:#fff; border-right:1px solid var(--line); overflow:auto; height:100vh; }
